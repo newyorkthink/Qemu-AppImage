@@ -26,6 +26,7 @@ jobs:
 
       - name: Make AppImage
         run: |
+          echo $PATH
           chmod a+x qemu-universal.sh
           ./qemu-universal.sh
           mkdir dist
