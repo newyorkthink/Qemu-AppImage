@@ -30,12 +30,11 @@ sudo install -m 0644 /etc/resolv.conf "${ROOT}/etc/resolv.conf"
 sudo install -m 0644 "${WORKSPACE}/files/mirrorlist" "${ROOT}/etc/pacman.d/mirrorlist"
 sudo install -m 0644 "${WORKSPACE}/files/pacman.conf" "${ROOT}/etc/pacman.conf"
 
-# Install Arch's official prebuilt QEMU desktop package. This provides the
-# x86_64 system emulator, GTK/OpenGL UI, audio, SPICE, USB and qemu-img
-# without compiling QEMU or installing every target architecture.
+# Install official prebuilt packages only. QEMU is not compiled here.
+# virt-viewer provides the SPICE client used for reliable host/guest clipboard.
 sudo chroot "${ROOT}" /usr/bin/bash -euo pipefail -c '
   pacman -Syyu --noconfirm
-  pacman -S --needed --noconfirm qemu-desktop jack2
+  pacman -S --needed --noconfirm qemu-desktop jack2 virt-viewer
 
   rm -rf \
     /var/cache/pacman/pkg/* \
@@ -58,8 +57,22 @@ sudo chroot "${ROOT}" /usr/bin/bash -euo pipefail -c '
 
 QEMU_VERSION="$(sudo chroot "${ROOT}" pacman -Q qemu-system-x86 | awk '{print $2}')"
 
-# Build libunionpreload independently; QEMU itself remains the official
-# distribution package.
+# Make remote-viewer portable when QEMU's spice-app display launches it.
+sudo mv "${ROOT}/usr/bin/remote-viewer" "${ROOT}/usr/bin/remote-viewer.real"
+sudo tee "${ROOT}/usr/bin/remote-viewer" >/dev/null <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)"
+INTERPRETER="${ROOT}/usr/lib/ld-linux-x86-64.so.2"
+[[ -x "${INTERPRETER}" ]] || INTERPRETER="${ROOT}/lib64/ld-linux-x86-64.so.2"
+exec "${INTERPRETER}" \
+  --inhibit-cache \
+  --library-path "${ROOT}/usr/lib" \
+  "${ROOT}/usr/bin/remote-viewer.real" "$@"
+EOF
+sudo chmod +x "${ROOT}/usr/bin/remote-viewer"
+
+# Build libunionpreload independently; QEMU itself remains the official package.
 LIBUNIONPRELOAD_COMMIT=bd1fc4a17ddac6ab999b741d3d16e930862a3d98
 wget -q \
   "https://raw.githubusercontent.com/project-portable/libunionpreload/${LIBUNIONPRELOAD_COMMIT}/libunionpreload.c" \
