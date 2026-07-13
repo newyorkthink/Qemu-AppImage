@@ -160,7 +160,9 @@ jobs:
           make
           make install
           cd ${GITHUB_WORKSPACE}
-          cp -f AppRun ${GITHUB_WORKSPACE}/lucas/
+          cp -f AppRun ${GITHUB_WORKSPACE}/lucas/AppRun.real
+          cp -f AppRun.wrapper ${GITHUB_WORKSPACE}/lucas/AppRun
+          chmod +x ${GITHUB_WORKSPACE}/lucas/AppRun ${GITHUB_WORKSPACE}/lucas/AppRun.real
           cp -f qemu.desktop ${GITHUB_WORKSPACE}/lucas/
           cp -f qemu_logo_no_text.svg ${GITHUB_WORKSPACE}/lucas/
           cp -f libunionpreload.so ${GITHUB_WORKSPACE}/lucas/
