@@ -21,14 +21,14 @@ wget -q \
   https://geo.mirror.pkgbuild.com/iso/latest/archlinux-bootstrap-x86_64.tar.zst \
   -O archlinux-bootstrap-x86_64.tar.zst
 
-rm -rf "${APPDIR}" "${BOOTSTRAP_DIR}"
+sudo rm -rf "${APPDIR}" "${BOOTSTRAP_DIR}"
 mkdir -p "${APPDIR}" "${BOOTSTRAP_DIR}"
-tar --zstd -xf archlinux-bootstrap-x86_64.tar.zst -C "${BOOTSTRAP_DIR}"
-mv "${BOOTSTRAP_DIR}/root.x86_64" "${ROOT}"
+sudo tar --zstd -xf archlinux-bootstrap-x86_64.tar.zst -C "${BOOTSTRAP_DIR}"
+sudo mv "${BOOTSTRAP_DIR}/root.x86_64" "${ROOT}"
 
-cp /etc/resolv.conf "${ROOT}/etc/resolv.conf"
-cp "${WORKSPACE}/files/mirrorlist" "${ROOT}/etc/pacman.d/mirrorlist"
-cp "${WORKSPACE}/files/pacman.conf" "${ROOT}/etc/pacman.conf"
+sudo install -m 0644 /etc/resolv.conf "${ROOT}/etc/resolv.conf"
+sudo install -m 0644 "${WORKSPACE}/files/mirrorlist" "${ROOT}/etc/pacman.d/mirrorlist"
+sudo install -m 0644 "${WORKSPACE}/files/pacman.conf" "${ROOT}/etc/pacman.conf"
 
 # Install Arch's official prebuilt QEMU desktop package. This provides the
 # x86_64 system emulator, GTK/OpenGL UI, audio, SPICE, USB and qemu-img
@@ -77,7 +77,7 @@ chmod +x "${APPDIR}/AppRun"
 # Strip only ELF files. Ignore firmware, scripts and data files.
 while IFS= read -r -d '' candidate; do
   if file -b "${candidate}" | grep -q '^ELF '; then
-    strip --strip-unneeded "${candidate}" 2>/dev/null || true
+    sudo strip --strip-unneeded "${candidate}" 2>/dev/null || true
   fi
 done < <(find "${ROOT}/usr/bin" "${ROOT}/usr/lib" -type f -print0)
 
