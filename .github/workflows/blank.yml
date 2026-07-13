@@ -68,6 +68,7 @@ jobs:
             libncurses5-dev \
             libnfs-dev \
             libnuma-dev \
+            libp11-kit-dev \
             libpciaccess-dev \
             libpciaccess0 \
             libpixman-1-0 \
@@ -85,6 +86,7 @@ jobs:
             libspice-server-dev \
             libspice-server1 \
             libssh-dev \
+            libtasn1-6-dev \
             libunistring-dev \
             liburing-dev \
             libusb-1.0-0-dev \
@@ -101,7 +103,6 @@ jobs:
             libyajl2 \
             libzstd-dev \
             libzstd1 \
-            meson \
             nettle-dev \
             ninja-build \
             pkg-config \
@@ -114,8 +115,10 @@ jobs:
             xz-utils \
             zlib1g-dev
 
-          python3 -m pip install --user --upgrade meson
-          export PATH="${HOME}/.local/bin:${PATH}"
+          python3 -m venv "${GITHUB_WORKSPACE}/.venv"
+          source "${GITHUB_WORKSPACE}/.venv/bin/activate"
+          python -m pip install --upgrade pip meson
+          MESON="$(command -v meson)"
 
           wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.7/gnutls-3.7.11.tar.xz
           tar -xf gnutls-3.7.11.tar.xz
@@ -128,15 +131,16 @@ jobs:
 
           wget -q https://download.gnome.org/sources/glib/2.80/glib-2.80.2.tar.xz
           tar -xf glib-2.80.2.tar.xz
-          meson setup glib-2.80.2/_build glib-2.80.2
-          meson compile -C glib-2.80.2/_build
-          sudo meson install -C glib-2.80.2/_build
+          "${MESON}" setup glib-2.80.2/_build glib-2.80.2
+          "${MESON}" compile -C glib-2.80.2/_build
+          sudo "${MESON}" install -C glib-2.80.2/_build
 
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O linuxdeploy
           wget -q https://github.com/VHSgunzo/uruntime/releases/download/v0.3.9/uruntime-appimage-dwarfs-x86_64 -O uruntime
           chmod +x linuxdeploy uruntime
 
-          # Build libunionpreload from pinned source instead of shipping an opaque binary.
+          # Build libunionpreload from a pinned upstream source revision instead
+          # of storing and trusting an opaque precompiled shared object.
           LIBUNIONPRELOAD_COMMIT=bd1fc4a17ddac6ab999b741d3d16e930862a3d98
           wget -q \
             "https://raw.githubusercontent.com/project-portable/libunionpreload/${LIBUNIONPRELOAD_COMMIT}/libunionpreload.c" \
