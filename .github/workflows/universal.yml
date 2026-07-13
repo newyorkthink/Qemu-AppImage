@@ -1,5 +1,6 @@
 name: Universal CI
 
+# Rebuild the restored upstream package from main.
 # Controls when the action will run.
 on:
   # Build at 00:00 every 6th day
