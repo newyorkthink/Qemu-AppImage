@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HERE="$(dirname "$(readlink -f "$0")")"
+REAL_APPRUN="${HERE}/AppRun.real"
+
+if [[ ! -x "${REAL_APPRUN}" ]]; then
+    echo "QEMU AppImage: missing AppRun.real" >&2
+    exit 127
+fi
+
+args=("$@")
+explicit_binary=0
+
+if (( ${#args[@]} > 0 )) && [[ "${args[0]##*/}" == qemu-system-* ]]; then
+    binary="${args[0]##*/}"
+    explicit_binary=1
+elif [[ "${ARGV0:-}" == */qemu-system-* || "${ARGV0:-}" == qemu-system-* ]]; then
+    binary="${ARGV0##*/}"
+else
+    binary="qemu-system-x86_64"
+    if (( ${#args[@]} == 0 )); then
+        args=("${binary}")
+        explicit_binary=1
+    fi
+fi
+
+# QEMU 11.1+ compiles GTK clipboard support unconditionally, but keeps it
+# disabled at runtime unless -display gtk,clipboard=on is supplied.
+# Set QEMU_GTK_CLIPBOARD=0 to leave all display arguments unchanged.
+if [[ "${QEMU_GTK_CLIPBOARD:-1}" != "0" && "${binary}" == qemu-system-* ]]; then
+    display_seen=0
+    suppress_default_display=0
+    scan_from=0
+
+    if (( explicit_binary )); then
+        scan_from=1
+    fi
+
+    for ((i = scan_from; i < ${#args[@]}; i++)); do
+        case "${args[i]}" in
+            -display)
+                display_seen=1
+                if (( i + 1 < ${#args[@]} )); then
+                    display="${args[i + 1]}"
+                    if [[ "${display}" == "gtk" ]]; then
+                        args[i + 1]="gtk,clipboard=on"
+                    elif [[ "${display}" == gtk,* && "${display}" != *clipboard=* ]]; then
+                        args[i + 1]="${display},clipboard=on"
+                    fi
+                    ((i += 1))
+                fi
+                ;;
+            -display=*)
+                display_seen=1
+                display="${args[i]#-display=}"
+                if [[ "${display}" == "gtk" ]]; then
+                    args[i]="-display=gtk,clipboard=on"
+                elif [[ "${display}" == gtk,* && "${display}" != *clipboard=* ]]; then
+                    args[i]="-display=${display},clipboard=on"
+                fi
+                ;;
+            -nographic|-curses|-daemonize|-vnc)
+                suppress_default_display=1
+                ;;
+        esac
+    done
+
+    if (( !display_seen && !suppress_default_display )); then
+        if (( explicit_binary )); then
+            args=("${args[0]}" -display gtk,clipboard=on "${args[@]:1}")
+        else
+            args=(-display gtk,clipboard=on "${args[@]}")
+        fi
+    fi
+fi
+
+exec "${REAL_APPRUN}" "${args[@]}"
