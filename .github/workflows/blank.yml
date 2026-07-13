@@ -117,7 +117,7 @@ jobs:
 
           python3 -m venv "${GITHUB_WORKSPACE}/.venv"
           source "${GITHUB_WORKSPACE}/.venv/bin/activate"
-          python -m pip install --upgrade pip meson packaging
+          python -m pip install --upgrade pip meson packaging tomli
           MESON="$(command -v meson)"
 
           wget -q https://www.gnupg.org/ftp/gcrypt/gnutls/v3.7/gnutls-3.7.11.tar.xz
