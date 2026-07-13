@@ -58,46 +58,6 @@ if [[ ! -x "${MAIN}" ]]; then
   exit 127
 fi
 
-# QEMU 11 enables GTK clipboard integration at runtime. Add clipboard=on to
-# GTK displays while preserving explicit clipboard=off and headless modes.
-if [[ "${QEMU_GTK_CLIPBOARD:-1}" != "0" && "${binary}" == qemu-system-* ]]; then
-  display_seen=0
-  suppress_default_display=0
-
-  for ((i = 0; i < ${#args[@]}; i++)); do
-    case "${args[i]}" in
-      -display)
-        display_seen=1
-        if (( i + 1 < ${#args[@]} )); then
-          display="${args[i + 1]}"
-          if [[ "${display}" == gtk ]]; then
-            args[i + 1]="gtk,clipboard=on"
-          elif [[ "${display}" == gtk,* && "${display}" != *clipboard=* ]]; then
-            args[i + 1]="${display},clipboard=on"
-          fi
-          ((i += 1))
-        fi
-        ;;
-      -display=*)
-        display_seen=1
-        display="${args[i]#-display=}"
-        if [[ "${display}" == gtk ]]; then
-          args[i]="-display=gtk,clipboard=on"
-        elif [[ "${display}" == gtk,* && "${display}" != *clipboard=* ]]; then
-          args[i]="-display=${display},clipboard=on"
-        fi
-        ;;
-      -nographic|-curses|-daemonize|-vnc)
-        suppress_default_display=1
-        ;;
-    esac
-  done
-
-  if (( !display_seen && !suppress_default_display )); then
-    args=(-display gtk,clipboard=on "${args[@]}")
-  fi
-fi
-
 exec "${INTERPRETER}" \
   --inhibit-cache \
   --library-path "${ROOT}/usr/lib" \
