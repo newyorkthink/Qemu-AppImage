@@ -31,7 +31,6 @@ sudo install -m 0644 "${WORKSPACE}/files/mirrorlist" "${ROOT}/etc/pacman.d/mirro
 sudo install -m 0644 "${WORKSPACE}/files/pacman.conf" "${ROOT}/etc/pacman.conf"
 
 # Install Arch's official prebuilt QEMU desktop package only.
-# QEMU's built-in VNC server is used for display and clipboard transport.
 sudo chroot "${ROOT}" /usr/bin/bash -euo pipefail -c '
   pacman -Syyu --noconfirm
   pacman -S --needed --noconfirm qemu-desktop jack2
