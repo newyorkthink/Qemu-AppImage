@@ -1,78 +1,77 @@
-name: Universal CI
+name: QEMU Package CI
 
-# Controls when the action will run.
 on:
-  # Build at 00:00 every 6th day
   schedule:
     - cron: "0 0 */6 * *"
-  # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
-    paths-ignore: [ '**/README.md' ]
-  pull_request:
-    branches: [ main ]
-    paths-ignore: [ '**/README.md' ]
-
-  # Allows you to run this workflow manually from the Actions tab
+    branches: [main]
+    paths-ignore:
+      - "**/README.md"
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+concurrency:
+  group: qemu-package-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      - name: Make AppImage
+      - name: Package official QEMU build
+        shell: bash
         run: |
-          echo $PATH
-          chmod a+x qemu-universal.sh
+          set -euo pipefail
+          chmod +x qemu-universal.sh
           ./qemu-universal.sh
-          mkdir dist
-          mv *.AppImage* dist/
+          mkdir -p dist
+          mv ./*.AppImage* dist/
 
-      - name: Upload artifact
+      - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: AppImage
-          path: 'dist/*.AppImage*'
-
-      - name: Upload version artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: version
-          path: 'dist/version'
+          name: QEMU-package
+          path: dist/*.AppImage*
+          if-no-files-found: error
 
   release:
-    needs: [build]
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-    runs-on: ubuntu-latest
 
     steps:
-      - name: Download AppImage artifact
+      - name: Download AppImage
         uses: actions/download-artifact@v4
         with:
-          name: AppImage
+          name: QEMU-package
 
-      - name: Delete Previous Release
-        run: |
-          gh release delete "${APP_VERSION}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag -y || echo "No release to delete"
+      - name: Replace continuous release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+          RELEASE_TAG: continuous-universal
+        run: |
+          gh release delete "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --cleanup-tag -y || true
 
-      - name: Create Release
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Continuous universal"
+          name: Continuous universal
           tag_name: continuous-universal
           prerelease: false
           draft: false
           generate_release_notes: false
           make_latest: true
-          files: |
-            *.AppImage*
+          files: "*.AppImage*"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
