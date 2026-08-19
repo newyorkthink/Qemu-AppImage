@@ -1,0 +1,73 @@
+name: QEMU Package CI
+
+on:
+  schedule:
+    - cron: "0 0 */6 * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: qemu-appimage-latest
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Package official QEMU build
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x qemu-universal.sh
+          ./qemu-universal.sh
+          mkdir -p dist
+          mv ./*.AppImage* dist/qemu.AppImage
+
+      - name: Publish Latest release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          cat > release-notes.md <<'EOF'
+          ## 中文
+
+          基于 Arch Linux 官方预编译 QEMU 桌面软件包构建的 QEMU AppImage。
+
+          - Release：`Latest`
+          - Tag：`latest`
+          - 文件：`qemu.AppImage`
+          - 构建：`qemu-desktop`、`jack2`、`virt-viewer`
+          - 不从源码重新编译 QEMU
+
+          ## English
+
+          QEMU AppImage built from the official prebuilt Arch Linux QEMU desktop packages.
+
+          - Release: `Latest`
+          - Tag: `latest`
+          - File: `qemu.AppImage`
+          - Build: `qemu-desktop`, `jack2`, and `virt-viewer`
+          - QEMU is not rebuilt from source
+          EOF
+
+          gh release delete latest \
+            --repo "${GITHUB_REPOSITORY}" \
+            --cleanup-tag -y || true
+
+          gh release create latest \
+            dist/qemu.AppImage \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "Latest" \
+            --notes-file release-notes.md \
+            --latest
