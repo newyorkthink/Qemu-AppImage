@@ -1,6 +1,17 @@
 name: QEMU AppImage Latest
 
 on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/qemu-latest.yml'
+      - 'qemu-universal.sh'
+      - 'AppRun'
+      - 'AppRun.wrapper'
+      - 'qemu.desktop'
+      - 'qemu_logo_no_text.svg'
+      - 'libunionpreload.so'
+      - 'files/**'
   schedule:
     # 每天仅检查一次 QEMU 官方稳定版；版本未变化时不会执行构建。
     - cron: "17 3 * * *"
@@ -57,8 +68,11 @@ jobs:
               || true
           )"
 
-          FORCE_BUILD="${{ inputs.force_build }}"
-          if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            FORCE_BUILD="true"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            FORCE_BUILD="${{ inputs.force_build }}"
+          else
             FORCE_BUILD="false"
           fi
 
