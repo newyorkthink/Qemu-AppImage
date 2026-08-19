@@ -1,56 +1,110 @@
-# Qemu_Appimage
-########################################################################
-<br> Thank you for sharing this project across the internet! <br/>
-<br> If you like it don't forget to give an star. <br/>
-<br> By the way this is an unofficial project. <br/>
-<br>There are two versions updated and avaiable here, Universal which is intended to work in every linux distro and Jammy which is intended to run in glibc 2.25 and above<br/>
-########################################################################
+# QEMU AppImage
 
+将 QEMU 打包为可直接运行的 AppImage。该仓库为非官方打包项目，QEMU 本身由 QEMU Project 维护。
 
-<br> This is a Prove of the concept that is possible to run a virtual machine from an Appimage. <br/>
-<br> What is the goal? <br/>
-<br> To run QEMU a virtual machine emulator from this container. <br/>
+## 下载
 
-which architectures are possible to run using this appimage? almost all of then which is supported by QEMU.
-In this repository you may find a text file with examples for using This QEMU AppImage, of course it's all in portuguese, but no need worries... those commands are the same for every single use of QEMU.
-if you had doubts about the use you can find me in Telegram: @zainotel.
+仓库只保留一个固定的 **Latest Release**：
 
-<br> useful commands! <br/>
+- [Latest Release](../../releases/latest)
+- `QEMU-latest-universal-x86_64.AppImage`：基于 Arch Linux 运行时环境打包。
+- `QEMU-latest-jammy-x86_64.AppImage`：在 Ubuntu 22.04 上从 QEMU 官方稳定版源码构建。
 
-<br> this one bellow creat an hard drive <br/>
+Release tag 始终为 `latest`，文件名保持稳定，因此不需要随着 QEMU 版本变化修改下载地址。
 
-<br> `./QEMU-x86_64.AppImage qemu-img create -f qcow2 windows10.qcow2 30G` <br/>
+## 自动更新
 
-<br> this other example boot the iso file <br/>
+GitHub Actions 每天仅执行一次轻量版本检查，直接读取 **QEMU 官方 GitLab** 的版本 tag：
 
-<br> `./QEMU-x86_64.AppImage qemu-system-x86_64 -enable-kvm -cpu host -smp cores=2 -m 4G -name 'Manjaro' -boot d -hda ~/Documentos/Manjaro.qcow2 -cdrom ~/Documentos/manjaro-gnome-21.3.7-220816-linux515.iso` <br/>
+1. 只接受 `vX.Y.Z` 格式的正式稳定版。
+2. 自动排除 `-rc` 等预发布版本。
+3. 将 QEMU 官方最新稳定版与当前 `latest` Release 中记录的 `QEMU-Version` 比较。
+4. 版本没有变化时立即结束，不执行 AppImage 构建。
+5. 发现新稳定版后才构建 Universal 和 Jammy 两个 AppImage。
+6. Universal 构建完成后会检查实际打包的 QEMU 版本；如果 Arch 软件包尚未同步到官方最新稳定版，本次发布直接停止，避免发布版本不一致的文件。
+7. 两个 AppImage 全部构建成功后才删除旧 Release，并重新创建固定的 `latest` Release。
+8. 不使用 GitHub Actions Artifact 作为中间传递或长期存储。
 
-<br> attention if you're using the version stable or the one which was build from the source you must use this command <br/>
+也可以在 **Actions → QEMU AppImage Latest → Run workflow** 手动检查；只有明确启用 `force_build` 时才会在版本未变化的情况下强制重建。
 
-<br> `./QEMU-x86_64.AppImage qemu-system-x86_64 -enable-kvm -M q35 -vga virtio -display gtk,gl=on -cpu host -smp cores=2 -m 1G -name 'teste' -boot d -hda ~/Downloads/organizar/windows10.qcow2 -cdrom ~/Documentos/AppImage/TinyCorePure64-14.0.iso` <br/>
+## 基本使用
 
-<br> the option `-vga virtio -display gtk,gl=on` will enable the gtk interface instead of vnc or if you didn't like gtk window you can change to sdl. the network is working normaly. <br/>
+### 添加执行权限
 
-<br> the audio is working use this command to get audio outoput in HDMI monitor or TV <br/>
+```bash
+chmod +x QEMU-latest-universal-x86_64.AppImage
+```
 
-<br> `./QEMU-git.AppImage qemu-system-x86_64 -enable-kvm -M q35 -vga virtio -display gtk,gl=on -cpu host -smp cores=2 -m 1G -name 'teste' -boot d -hda ~/Downloads/organizar/windows10.qcow2 -cdrom ~/Downloads/organizar/bodhi.iso -device ich9-intel-hda,addr=1f.1 -audiodev pa,id=snd0 -device hda-output,audiodev=snd0` <br/>
+以下示例使用 Universal 文件；如果使用 Jammy，只需要替换 AppImage 文件名。
 
-########################################################################
-<br> How to mount the qcow2 image on your system in order to add files or edit the VM <br/>
-<br> `sudo modprobe nbd max_part=8`  <br/>
-<br> `sudo /home/lucas/Downloads/QEMU-x86_64.AppImage qemu-nbd --connect=/dev/nbd0 /home/lucas/Downloads/windows10.qcow2` <br/>
-<br> attention in order to use the appimage to run qemu-nbd you may have to give the full path til the .AppImage file <br/>
-<br> `sudo fdisk /dev/nbd0 -l` <br/>
-<br> `sudo mount /dev/nbd0p1 /mnt/somepoint/` <br/>
-<br> Unmount the .qcow2 image <br/>
-<br> `sudo umount /mnt/somepoint/` <br/>
-<br> `sudo /home/lucas/Downloads/QEMU-x86_64.AppImage qemu-nbd --disconnect /dev/nbd0` <br/>
-<br> now remove de nbd <br/>
-<br> `sudo rmmod nbd` <br/>
-<br> <h3> How to mount a shared folder between the host and guest </h3> <br/>
-<br> With this command below you will able to mount a shared folder betwen the vm (guest OS) and your linux system (host OS) <br/>
-<br> `QEMU-x86_64.AppImage qemu-system-x86_64 -M q35 -vga virtio -enable-kvm -cpu host -smp cores=2 -m 4G -name 'VM' -boot c -hda ~/Downloads/Xubuntu.qcow2 -virtfs local,path=/some/path/in/my/machine/hostOS/,mount_tag=host0,security_model=mapped,id=host0` <br/>
-<br> the command below must be typed into the the gest os on the terminal <br/>
-<br> `sudo mount -t 9p -o trans=virtio,version=9p2000.L host0 /some/folder/into/the/vm/` <br/>
-<br> <h1>Telegram Group<h1/> <br/>
-<h1>https://t.me/appimagelucasmz1<h1/>
+### 查看 QEMU 版本
+
+```bash
+./QEMU-latest-universal-x86_64.AppImage qemu-system-x86_64 --version
+```
+
+### 创建 QCOW2 磁盘
+
+```bash
+./QEMU-latest-universal-x86_64.AppImage qemu-img create -f qcow2 disk.qcow2 30G
+```
+
+### 启动 x86_64 虚拟机
+
+```bash
+./QEMU-latest-universal-x86_64.AppImage qemu-system-x86_64 \
+  -enable-kvm \
+  -cpu host \
+  -smp 2 \
+  -m 4G \
+  -drive file=disk.qcow2,format=qcow2 \
+  -cdrom system.iso \
+  -boot d
+```
+
+### GTK 图形界面与剪贴板
+
+Jammy AppImage 的启动 wrapper 会在使用 GTK display 时自动补充 `clipboard=on`，无需每次手动追加。
+
+```bash
+./QEMU-latest-jammy-x86_64.AppImage qemu-system-x86_64 \
+  -enable-kvm \
+  -cpu host \
+  -m 4G \
+  -display gtk
+```
+
+### 主机与虚拟机共享目录
+
+主机侧示例：
+
+```bash
+./QEMU-latest-universal-x86_64.AppImage qemu-system-x86_64 \
+  -enable-kvm \
+  -cpu host \
+  -m 4G \
+  -drive file=disk.qcow2,format=qcow2 \
+  -virtfs local,path=/path/to/share,mount_tag=host0,security_model=mapped,id=host0
+```
+
+Linux Guest 内挂载：
+
+```bash
+sudo mount -t 9p -o trans=virtio,version=9p2000.L host0 /mnt/share
+```
+
+## KVM
+
+需要硬件加速时，主机必须提供 `/dev/kvm` 并允许当前用户访问。无法使用 KVM 时，可以去掉 `-enable-kvm` 和 `-cpu host`，由 QEMU 使用软件模拟。
+
+## 构建结构
+
+- `.github/workflows/qemu-latest.yml`：检查 QEMU 官方稳定版、按需构建并发布固定 `latest` Release。
+- `qemu-universal.sh`：Universal AppImage 的现有构建脚本。
+- `AppRun`：Jammy AppImage 的原始运行入口。
+- `AppRun.wrapper`：Jammy AppImage 的启动 wrapper，并处理 GTK clipboard 参数。
+- `files/`：Universal AppImage 所需的 AppRun、desktop、图标和 Arch 配置文件。
+
+## 说明
+
+本仓库只负责 AppImage 打包和自动发布，不是 QEMU 官方仓库。QEMU 的功能、版本和源码以 QEMU Project 官方发布为准。
