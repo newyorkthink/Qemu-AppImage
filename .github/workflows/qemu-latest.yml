@@ -270,6 +270,17 @@ jobs:
           cat > release-notes.md <<EOF
           QEMU-Version: ${QEMU_VERSION}
 
+          ## 中文
+
+          这是跟踪 QEMU 官方最新稳定版的非官方 QEMU AppImage 构建。
+
+          - QEMU 官方版本：v${QEMU_VERSION}
+          - Universal：基于 Arch Linux 运行时环境打包
+          - Jammy：在 Ubuntu 22.04 上从 QEMU 官方稳定版源码构建
+          - Release tag 始终固定为：latest
+
+          ## English
+
           Unofficial QEMU AppImage build tracking the latest stable QEMU release.
 
           - QEMU upstream: v${QEMU_VERSION}
@@ -292,6 +303,6 @@ jobs:
             dist/QEMU-latest-jammy-x86_64.AppImage \
             --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
-            --title "QEMU AppImage ${QEMU_VERSION}" \
+            --title "QEMU AppImage ${QEMU_VERSION} / QEMU AppImage 最新版 ${QEMU_VERSION}" \
             --notes-file release-notes.md \
             --latest
