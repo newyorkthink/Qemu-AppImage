@@ -2,7 +2,7 @@
 
 ## 中文
 
-这是一个非官方 QEMU AppImage 打包仓库。构建流程使用 Arch Linux 官方预编译软件包，不重新编译 QEMU 源码。
+这是一个非官方 QEMU AppImage 打包仓库。自动构建沿用原有 Compiled CI 流程，从 QEMU 官方上游源码构建，并使用原有运行时处理和高压缩 AppImage 打包方式。
 
 ### 下载
 
@@ -18,14 +18,13 @@ Release 固定只使用：
 
 ### 自动构建
 
-GitHub Actions 使用已经验证过的快速打包流程：
-
-- 使用 Arch Linux 官方 `qemu-desktop`、`jack2` 和 `virt-viewer` 软件包。
-- 保留 SPICE/virt-viewer 剪贴板支持所需的运行时处理。
 - 每次向 `main` 推送都会自动构建。
-- 每 6 天自动重新构建一次，以获取软件源中的更新。
-- 同一分支出现新的构建时，会取消仍在运行的旧构建，避免重复运行。
-- 构建完成后只更新固定的 `latest` Release 和 `qemu.AppImage`。
+- 每 6 天自动重新构建一次，从 QEMU 官方上游获取当时最新源码。
+- 构建参数沿用原有 Compiled CI 配置。
+- 保留 `AppRun`、`AppRun.wrapper` 和 `libunionpreload.so` 的既有运行时处理。
+- 使用 `uruntime`、DWARFS 和 `zstd:level=22` 生成紧凑型 AppImage。
+- 不使用 GitHub Actions Artifact。
+- 构建成功后只更新固定的 `Latest` / `latest` Release 和 `qemu.AppImage`。
 
 ### 基本使用
 
@@ -66,7 +65,7 @@ chmod +x qemu.AppImage
 
 ## English
 
-This is an unofficial QEMU AppImage packaging repository. The build uses official prebuilt Arch Linux packages and does not rebuild QEMU from source.
+This is an unofficial QEMU AppImage packaging repository. Automated builds preserve the existing Compiled CI flow, build from the official upstream QEMU source, and keep the existing runtime handling and compact AppImage packaging method.
 
 ### Download
 
@@ -82,14 +81,13 @@ Stable download URL:
 
 ### Automatic builds
 
-GitHub Actions keeps the previously validated fast packaging flow:
-
-- Uses the official Arch Linux `qemu-desktop`, `jack2`, and `virt-viewer` packages.
-- Keeps the runtime handling required for SPICE/virt-viewer clipboard support.
 - Every push to `main` automatically starts a build.
-- A scheduled rebuild runs every 6 days to pick up repository updates.
-- A newer build on the same branch cancels an older in-progress build to avoid duplicate runs.
-- A successful build only refreshes the fixed `latest` Release and `qemu.AppImage`.
+- A scheduled rebuild runs every 6 days and pulls the then-current official upstream QEMU source.
+- The existing Compiled CI build options are preserved.
+- The existing `AppRun`, `AppRun.wrapper`, and `libunionpreload.so` runtime handling is preserved.
+- `uruntime`, DWARFS, and `zstd:level=22` are used to produce the compact AppImage.
+- GitHub Actions Artifact is not used.
+- A successful build only refreshes the fixed `Latest` / `latest` Release and `qemu.AppImage`.
 
 ### Basic usage
 
