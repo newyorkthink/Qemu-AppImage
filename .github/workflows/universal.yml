@@ -22,6 +22,19 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Avoid slow Azure Ubuntu mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -f /etc/apt/apt-mirrors.txt ]]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
+
+          if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+          fi
+
       - name: Package official QEMU build
         shell: bash
         run: |
