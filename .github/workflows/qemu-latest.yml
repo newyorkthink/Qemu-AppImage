@@ -5,13 +5,11 @@ on:
     branches: [ main ]
     paths:
       - '.github/workflows/qemu-latest.yml'
-      - 'qemu-universal.sh'
       - 'AppRun'
       - 'AppRun.wrapper'
       - 'qemu.desktop'
       - 'qemu_logo_no_text.svg'
       - 'libunionpreload.so'
-      - 'files/**'
   schedule:
     # 每天仅检查一次 QEMU 官方稳定版；版本未变化时不会执行构建。
     - cron: "17 3 * * *"
@@ -87,40 +85,7 @@ jobs:
             echo "Latest stable QEMU: ${QEMU_VERSION}; current published version: ${CURRENT_VERSION:-none}."
           fi
 
-      - name: Build Universal AppImage
-        if: steps.version.outputs.build_required == 'true'
-        env:
-          QEMU_VERSION: ${{ steps.version.outputs.qemu_version }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # 保留现有 Universal 构建脚本作为稳定基线。
-          chmod a+x qemu-universal.sh
-          ./qemu-universal.sh
-
-          # 确认 Universal 实际打包的 QEMU 版本与官方最新稳定版一致，避免 Arch 软件包尚未同步时误发布旧版本。
-          UNIVERSAL_VERSION="$(
-            sudo chroot "${GITHUB_WORKSPACE}/arch/root" /usr/bin/qemu-system-x86_64 --version \
-              | sed -n 's/^QEMU emulator version \([0-9][0-9.]*\).*/\1/p' \
-              | head -n 1
-          )"
-
-          if [[ "${UNIVERSAL_VERSION}" != "${QEMU_VERSION}" ]]; then
-            echo "Universal QEMU version ${UNIVERSAL_VERSION:-unknown} does not match upstream ${QEMU_VERSION}." >&2
-            exit 1
-          fi
-
-          UNIVERSAL_APPIMAGE="$(find "${GITHUB_WORKSPACE}" -maxdepth 1 -type f -name '*.AppImage*' -print -quit)"
-          if [[ -z "${UNIVERSAL_APPIMAGE}" ]]; then
-            echo "Universal AppImage was not generated." >&2
-            exit 1
-          fi
-
-          mkdir -p dist
-          mv "${UNIVERSAL_APPIMAGE}" "dist/QEMU-latest-universal-x86_64.AppImage"
-
-      - name: Build Jammy AppImage
+      - name: Build QEMU AppImage
         if: steps.version.outputs.build_required == 'true'
         env:
           QEMU_TAG: ${{ steps.version.outputs.qemu_tag }}
@@ -271,9 +236,10 @@ jobs:
           export VERSION=git
           cd ${GITHUB_WORKSPACE}
           ./uruntime --appimage-mkdwarfs -f --set-owner 0 --set-group 0 --no-history --no-create-timestamp --compression zstd:level=22 -S26 -B8 --header uruntime -i ${GITHUB_WORKSPACE}/lucas/ -o QEMU-"$VERSION"-"$ARCH".AppImage
-          mv QEMU-"$VERSION"-"$ARCH".AppImage dist/QEMU-latest-jammy-x86_64.AppImage
+          mkdir -p dist
+          mv QEMU-"$VERSION"-"$ARCH".AppImage dist/qemu.AppImage
 
-      - name: Publish only latest release
+      - name: Publish Latest release
         if: steps.version.outputs.build_required == 'true'
         env:
           QEMU_VERSION: ${{ steps.version.outputs.qemu_version }}
@@ -286,24 +252,22 @@ jobs:
 
           ## 中文
 
-          这是跟踪 QEMU 官方最新稳定版的非官方 QEMU AppImage 构建。
+          QEMU 官方最新稳定版 AppImage。
 
           - QEMU 官方版本：v${QEMU_VERSION}
-          - Universal：基于 Arch Linux 运行时环境打包
-          - Jammy：在 Ubuntu 22.04 上从 QEMU 官方稳定版源码构建
-          - Release tag 始终固定为：latest
+          - 文件：qemu.AppImage
+          - Release tag：latest
 
           ## English
 
-          Unofficial QEMU AppImage build tracking the latest stable QEMU release.
+          AppImage build of the latest stable QEMU release.
 
           - QEMU upstream: v${QEMU_VERSION}
-          - Universal: Arch-based runtime bundle
-          - Jammy: source build on Ubuntu 22.04
-          - Release tag is always: latest
+          - File: qemu.AppImage
+          - Release tag: latest
           EOF
 
-          # 新版本构建全部成功后，删除旧 Release 及其 Release tag；仓库最终只保留 latest Release。
+          # 新版本构建成功后，删除旧 Release 及其 Release tag；旧 QEMU-git 等资产会随旧 Release 一并删除。
           mapfile -t RELEASE_TAGS < <(
             gh release list --repo "${GITHUB_REPOSITORY}" --limit 100 --json tagName --jq '.[].tagName'
           )
@@ -313,10 +277,9 @@ jobs:
           done
 
           gh release create latest \
-            dist/QEMU-latest-universal-x86_64.AppImage \
-            dist/QEMU-latest-jammy-x86_64.AppImage \
+            dist/qemu.AppImage \
             --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
-            --title "QEMU AppImage ${QEMU_VERSION} / QEMU AppImage 最新版 ${QEMU_VERSION}" \
+            --title "Latest" \
             --notes-file release-notes.md \
             --latest

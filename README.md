@@ -1,29 +1,29 @@
 # QEMU AppImage
 
-将 QEMU 打包为可直接运行的 AppImage。该仓库为非官方打包项目，QEMU 本身由 QEMU Project 维护。
+将 QEMU 官方最新稳定版打包为可直接运行的 AppImage。该仓库为非官方打包项目，QEMU 本身由 QEMU Project 维护。
 
 ## 下载
 
 仓库只保留一个固定的 **Latest Release**：
 
 - [Latest Release](../../releases/latest)
-- `QEMU-latest-universal-x86_64.AppImage`：基于 Arch Linux 运行时环境打包。
-- `QEMU-latest-jammy-x86_64.AppImage`：在 Ubuntu 22.04 上从 QEMU 官方稳定版源码构建。
+- `qemu.AppImage`：从 QEMU 官方最新稳定版源码构建。
 
-Release tag 始终为 `latest`，文件名保持稳定，因此不需要随着 QEMU 版本变化修改下载地址。
+Release 标题固定为 `Latest`，Release tag 固定为 `latest`，文件名固定为 `qemu.AppImage`，因此 QEMU 更新后下载地址无需变化。
 
 ## 自动更新
 
-GitHub Actions 每天仅执行一次轻量版本检查，直接读取 **QEMU 官方 GitLab** 的版本 tag：
+GitHub Actions 会自动检查 **QEMU 官方 GitLab** 的版本 tag：
 
 1. 只接受 `vX.Y.Z` 格式的正式稳定版。
 2. 自动排除 `-rc` 等预发布版本。
 3. 将 QEMU 官方最新稳定版与当前 `latest` Release 中记录的 `QEMU-Version` 比较。
-4. 版本没有变化时立即结束，不执行 AppImage 构建。
-5. 发现新稳定版后才构建 Universal 和 Jammy 两个 AppImage。
-6. Universal 构建完成后会检查实际打包的 QEMU 版本；如果 Arch 软件包尚未同步到官方最新稳定版，本次发布直接停止，避免发布版本不一致的文件。
-7. 两个 AppImage 全部构建成功后才删除旧 Release，并重新创建固定的 `latest` Release。
-8. 不使用 GitHub Actions Artifact 作为中间传递或长期存储。
+4. 定时检查时，版本没有变化会直接结束，不重复构建。
+5. 发现新稳定版后，从对应 QEMU 官方稳定 tag 构建 `qemu.AppImage`。
+6. 修改构建相关文件并推送到 `main` 时会自动重新构建。
+7. 构建成功后才删除旧 Release，并重新创建固定的 `latest` Release。
+8. 旧的 `QEMU-git-*` 等资产会随旧 Release 一并删除，不再单独发布 Git 分支构建版本。
+9. 不使用 GitHub Actions Artifact 作为中间传递或长期存储。
 
 也可以在 **Actions → QEMU AppImage Latest → Run workflow** 手动检查；只有明确启用 `force_build` 时才会在版本未变化的情况下强制重建。
 
@@ -32,27 +32,25 @@ GitHub Actions 每天仅执行一次轻量版本检查，直接读取 **QEMU 官
 ### 添加执行权限
 
 ```bash
-chmod +x QEMU-latest-universal-x86_64.AppImage
+chmod +x qemu.AppImage
 ```
-
-以下示例使用 Universal 文件；如果使用 Jammy，只需要替换 AppImage 文件名。
 
 ### 查看 QEMU 版本
 
 ```bash
-./QEMU-latest-universal-x86_64.AppImage qemu-system-x86_64 --version
+./qemu.AppImage qemu-system-x86_64 --version
 ```
 
 ### 创建 QCOW2 磁盘
 
 ```bash
-./QEMU-latest-universal-x86_64.AppImage qemu-img create -f qcow2 disk.qcow2 30G
+./qemu.AppImage qemu-img create -f qcow2 disk.qcow2 30G
 ```
 
 ### 启动 x86_64 虚拟机
 
 ```bash
-./QEMU-latest-universal-x86_64.AppImage qemu-system-x86_64 \
+./qemu.AppImage qemu-system-x86_64 \
   -enable-kvm \
   -cpu host \
   -smp 2 \
@@ -64,10 +62,10 @@ chmod +x QEMU-latest-universal-x86_64.AppImage
 
 ### GTK 图形界面与剪贴板
 
-Jammy AppImage 的启动 wrapper 会在使用 GTK display 时自动补充 `clipboard=on`，无需每次手动追加。
+启动 wrapper 会在使用 GTK display 时自动补充 `clipboard=on`，无需每次手动追加。
 
 ```bash
-./QEMU-latest-jammy-x86_64.AppImage qemu-system-x86_64 \
+./qemu.AppImage qemu-system-x86_64 \
   -enable-kvm \
   -cpu host \
   -m 4G \
@@ -79,7 +77,7 @@ Jammy AppImage 的启动 wrapper 会在使用 GTK display 时自动补充 `clipb
 主机侧示例：
 
 ```bash
-./QEMU-latest-universal-x86_64.AppImage qemu-system-x86_64 \
+./qemu.AppImage qemu-system-x86_64 \
   -enable-kvm \
   -cpu host \
   -m 4G \
@@ -100,10 +98,9 @@ sudo mount -t 9p -o trans=virtio,version=9p2000.L host0 /mnt/share
 ## 构建结构
 
 - `.github/workflows/qemu-latest.yml`：检查 QEMU 官方稳定版、按需构建并发布固定 `latest` Release。
-- `qemu-universal.sh`：Universal AppImage 的现有构建脚本。
-- `AppRun`：Jammy AppImage 的原始运行入口。
-- `AppRun.wrapper`：Jammy AppImage 的启动 wrapper，并处理 GTK clipboard 参数。
-- `files/`：Universal AppImage 所需的 AppRun、desktop、图标和 Arch 配置文件。
+- `AppRun`：AppImage 的原始运行入口。
+- `AppRun.wrapper`：AppImage 启动 wrapper，并处理 GTK clipboard 参数。
+- `qemu.desktop`、`qemu_logo_no_text.svg`、`libunionpreload.so`：AppImage 打包所需文件。
 
 ## 说明
 
