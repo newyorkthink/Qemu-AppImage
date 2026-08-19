@@ -3,13 +3,6 @@ name: QEMU AppImage Latest
 on:
   push:
     branches: [ main ]
-    paths:
-      - '.github/workflows/qemu-latest.yml'
-      - 'AppRun'
-      - 'AppRun.wrapper'
-      - 'qemu.desktop'
-      - 'qemu_logo_no_text.svg'
-      - 'libunionpreload.so'
   schedule:
     # 每天仅检查一次 QEMU 官方稳定版；版本未变化时不会执行构建。
     - cron: "17 3 * * *"
